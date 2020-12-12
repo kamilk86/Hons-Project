@@ -5,7 +5,6 @@ import json
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib import style
-import matplotlib.animation as animation
 import seaborn as sns
 
 
@@ -13,16 +12,16 @@ heading = 'Helvetica 14 bold'
 my_font = ('Times New Roman', 14)
 cache = None
 curr_twt = None
-file_path = ''
+
 stats = {
-                    'completed': 0,
-                    'remaining': 0,
-                    'negative': 0,
-                    'not negative': 0,
-                    'undecided': 0,
-                    'error': 0,
-                    'unrelated': 0,
-                }
+            'completed': 0,
+            'remaining': 0,
+            'negative': 0,
+            'not negative': 0,
+            'undecided': 0,
+            'error': 0,
+            'unrelated': 0,
+        }
 
 class AnnotatorApp(tk.Tk):
     def __init__(self, *args, **kwargs):
@@ -49,10 +48,8 @@ class HeaderPane(tk.Frame):
         tk.Frame.__init__(self, parent)
         
         self.grid(row=1, column=0)
-        self.widgets()
        
-    def widgets(self):
-         # file path
+         # file path info output
         self.output = tk.Text(self, state='disabled', width=60, height=3, wrap=tk.WORD, bg='gainsboro', borderwidth=2, relief='groove')
         self.output.grid(column=1, row=1, sticky='W', padx=(5, 0), pady=10)
 
@@ -67,6 +64,7 @@ class HeaderPane(tk.Frame):
 class FileMenu(tk.Menu):
     def __init__(self, parent, controller):
         tk.Menu.__init__(self, parent)
+
         self.controller = controller
         file_menu = tk.Menu(self, tearoff=False)
         self.add_cascade(label='File', underline=0, menu=file_menu)
@@ -77,21 +75,22 @@ class FileMenu(tk.Menu):
         file_menu.add_separator()
         file_menu.add_command(label='Exit', underline=1, command=self.exit)
 
+        self.file_path = ''
+
     def open_file(self):
         global cache
         global curr_twt
-        global file_path
         global stats
 
-        file_path = askopenfilename()
-        file_details = os.path.splitext(file_path)
+        self.file_path = askopenfilename()
+        file_details = os.path.splitext(self.file_path)
         header_pane = self.controller.get_segment(HeaderPane)
         
         if file_details[1] == '.json':
             
-            header_pane.display_file_details('Current file: ' + str(file_path))
+            header_pane.display_file_details('Current file: ' + str(self.file_path))
 
-            with open(file_path, 'rb') as f:
+            with open(self.file_path, 'rb') as f:
                 cache = json.load(f)
                 curr_twt = 0
                 stats = {
@@ -123,11 +122,12 @@ class FileMenu(tk.Menu):
         else:
             header_pane.display_file_details('Select a valid .json file')
 
-    @staticmethod
-    def save():
-        global cache
-        with open(file_path, 'w') as f:
-            json.dump(cache, f, indent=2)
+    def save(self):
+        if self.file_path:
+            global cache
+            with open(self.file_path, 'w') as f:
+                json.dump(cache, f, indent=2)
+        return
 
     @staticmethod
     def save_as():
@@ -152,10 +152,8 @@ class MainPane(tk.Frame):
        
         self.grid(row=2, column=0)
 
-        
-
-        #self.w = tk.OptionMenu(self, self.var, 'Open File', 'Recent', 'Save As', 'Save', 'Save & Exit')
         # ---Buttons---
+
         # Unrelated, undecided, error
         self.unrl_btn = tk.Button(self, text='Unrelated', width=10, command=self.unrelated)
         self.unrl_btn.grid(row=5, column=0, padx=5)
@@ -165,6 +163,7 @@ class MainPane(tk.Frame):
 
         self.error_btn = tk.Button(self, text='Error tweet', width=10, command=self.error_twt)
         self.error_btn.grid(row=6, column=0, padx=5, pady=5)
+
         # Yes, No
         self.yes_btn = tk.Button(self, text='Yes', width=10, command=self.yes)
         self.yes_btn.grid(row=4, column=1, padx=5)
@@ -174,11 +173,13 @@ class MainPane(tk.Frame):
         # Start
         self.start_btn = tk.Button(self, text='Start', width=15, command=self.display_current)
         self.start_btn.grid(row=0, column=3)
+
         # Next, Previous
         self.prev_btn = tk.Button(self, text='Prev', command=self.prev)
         self.prev_btn.grid(row=4, column=3, sticky='E')
         self.next_btn = tk.Button(self, text='Next', command=self.next)
         self.next_btn.grid(row=4, column=4, sticky='W')
+
         # jump buttons
         self.jump_btn = tk.Button(self, text='Jump to first unmarked', width=20, command=self.jump_to_unmarked)
         self.jump_btn.grid(row=4, column=5, padx=5, sticky='W')
@@ -203,17 +204,19 @@ class MainPane(tk.Frame):
         self.main_lbl.grid(row=0, column=1, columnspan=2, padx=5, pady=(10, 5))
 
        
-
         self.mark_btns_lbl = tk.Label(self, text='Mark Tweet', font=heading)
         self.mark_btns_lbl.grid(row=3, column=0, columnspan=3, pady=5)
         self.navi_btns_lbl = tk.Label(self, text='Navigation', font=heading)
         self.navi_btns_lbl.grid(row=3, column=4, pady=5, columnspan=2)
+
         # tweet number
         self.no_lbl = tk.Label(self, text='Tweet No.')
         self.no_lbl.grid(row=1, column=0, padx=5, pady=(20, 5), sticky='E')
+
         # marked
         self.marked_lbl = tk.Label(self, text='Yes/No?')
         self.marked_lbl.grid(row=1, column=2, padx=5, pady=(20, 5), sticky='E')
+
         # ---Outputs---
         
         # tweet number field
@@ -241,6 +244,7 @@ class MainPane(tk.Frame):
 
    
     def display_current(self):
+        # displays current tweet info, and stats
         stats_pane = self.controller.get_segment(StatsPane)
         global curr_twt
         global cache
@@ -259,6 +263,7 @@ class MainPane(tk.Frame):
 
         self.marked_txt.configure(state='normal')
         self.marked_txt.delete(1.0, tk.END)
+
         if 'negative' not in cache[curr_twt]:
             self.marked_txt.insert(tk.END, 'Unmarked', '\n')
         elif cache[curr_twt]['negative']:
@@ -507,12 +512,12 @@ class StatsPane(tk.Frame):
 
         self.ax1 = self.fig.add_subplot(111)
         # plt.gcf().subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-        canvas = FigureCanvasTkAgg(self.fig, self)
-        ani = animation.FuncAnimation(self.fig, self.animate, interval=1000)
-        canvas.draw()
-        canvas.get_tk_widget().grid(row=2, column=0, sticky='w')
+        self.canvas = FigureCanvasTkAgg(self.fig, self)
+        #ani = animation.FuncAnimation(self.fig, self.animate, interval=1000)
+        #self.animate()
+        self.canvas.get_tk_widget().grid(row=2, column=0, sticky='w')
 
-    def animate(self, i):
+    def update_chart(self):
             xs = []
             ys = []
 
@@ -529,6 +534,9 @@ class StatsPane(tk.Frame):
             bar_list[2].set_color('orange')
             bar_list[3].set_color('yellow')
             bar_list[4].set_color('blue')
+
+            self.canvas.draw()
+    
 
 
     def display_stats(self):
@@ -560,12 +568,11 @@ class StatsPane(tk.Frame):
         self.stats_display.insert(tk.END, info)
         self.stats_display.configure(state='disabled')
 
-def main():
-    app = AnnotatorApp()
-    #master.geometry('1125x620')
-    #master.title('Data Annotator')
+        self.update_chart()
 
-    #main_bar = MainBar(master)
+def main():
+
+    app = AnnotatorApp()
     app.mainloop()
 
 
