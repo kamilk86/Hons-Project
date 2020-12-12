@@ -228,6 +228,18 @@ class MainBar:
         self.txt_output.grid(row=2, column=0, columnspan=6, padx=5, pady=5)
         self.txt_output.configure(font=my_font)
 
+    def display_tweet(self, msg):
+        self.txt_output.configure(state='normal')
+        self.txt_output.delete(1.0, tk.END)
+        self.txt_output.insert(tk.END, msg, '\n')
+        self.txt_output.configure(state='disabled')
+
+    def display_tweet_num(self, num):
+        self.txt_no.configure(state='normal')
+        self.txt_no.delete(1.0, tk.END)
+        self.txt_no.insert(tk.END, num, '\n')
+        self.txt_no.configure(state='disabled')
+
     def animate(self, i):
         xs = []
         ys = []
@@ -253,28 +265,14 @@ class MainBar:
         try:
             if curr_twt is not None:
                 twt = cache[curr_twt]['text']
-                self.txt_output.configure(state='normal')
-                self.txt_output.delete(1.0, tk.END)
-                self.txt_output.insert(tk.END, twt, '\n')
-                self.txt_output.configure(state='disabled')
-
-                self.txt_no.configure(state='normal')
-                self.txt_no.delete(1.0, tk.END)
-                self.txt_no.insert(tk.END, str(curr_twt + 1), '\n')
-                self.txt_no.configure(state='disabled')
+                self.display_tweet(twt)
+                self.display_tweet_num(str(curr_twt + 1))
 
         except Exception as e:
-            self.txt_output.configure(state='normal')
-            self.txt_output.delete(1.0, tk.END)
-            self.txt_output.insert(tk.END, e, '\n')
-            self.txt_output.configure(state='disabled')
+            self.display_tweet(e)
             print('-------------------------------------------------------------------------------')
             print(cache[curr_twt]['text'])
-
-            self.txt_no.configure(state='normal')
-            self.txt_no.delete(1.0, tk.END)
-            self.txt_no.insert(tk.END, str(curr_twt + 1), '\n')
-            self.txt_no.configure(state='disabled')
+            self.display_tweet_num(str(curr_twt + 1))
 
         self.marked_txt.configure(state='normal')
         self.marked_txt.delete(1.0, tk.END)
