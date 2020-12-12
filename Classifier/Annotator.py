@@ -24,41 +24,50 @@ stats = {
                     'unrelated': 0,
                 }
 
+class AnnotatorApp(tk.Tk):
+    def __init__(self, *args, **kwargs):
+        tk.Tk.__init__(self, *args, **kwargs)
+        self.geometry('1125x620')
+        self.title('Data Annotator')
+        container = tk.Frame(self)
+        container.pack(side="top", fill="both", expand=True)
+        self.segments = {}
 
-class HeaderBar:
-    def __init__(self, master):
-        self.master = master
-        self.frame = tk.Frame(self.master)
-        self.frame.grid(row=1, column=0)
-        # ---Buttons---
-        # open json
-       # self.browse_btn = tk.Button(self.frame, text='Open Json', width=25, command=self.open_file)
-        #self.browse_btn.grid(column=0, row=1, sticky='E', padx=5, pady=10)
+        for S in (HeaderPane, FileMenu, MainPane, StatsPane):
+            segment = S(container, self)
+            self.segments[S] = segment
 
-        #self.page2_btn = tk.Button(self.frame, text='Page 2', width=10, command=self.show_page2)
-        #self.page2_btn.grid(row=1, column=2)
-        # ---Outputs---
-        # file path
-        self.output = tk.Text(self.frame, state='disabled', width=60, height=3, wrap=tk.WORD, bg='gainsboro', borderwidth=2, relief='groove')
+        file_menu = self.segments[FileMenu]
+        self.config(menu=file_menu)
+
+    def get_segment(self, segment):
+        return self.segments[segment]
+
+
+class HeaderPane(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        
+        self.grid(row=1, column=0)
+        self.widgets()
+       
+    def widgets(self):
+         # file path
+        self.output = tk.Text(self, state='disabled', width=60, height=3, wrap=tk.WORD, bg='gainsboro', borderwidth=2, relief='groove')
         self.output.grid(column=1, row=1, sticky='W', padx=(5, 0), pady=10)
 
-        file_details = os.path.splitext(file_path)
+    def display_file_details(self, msg):
 
-        if file_details[1] == '.json':
-            self.output.configure(state='normal')
-            self.output.delete(1.0, tk.END)
-            self.output.insert(tk.END, 'Current file: ' + str(file_path) + '\n')
-            self.output.configure(state='disabled')
-        else:
-            self.output.configure(state='normal')
-            self.output.delete(1.0, tk.END)
-            self.output.insert(tk.END, 'Select a valid .json file\n')
-            self.output.configure(state='disabled')
+        self.output.configure(state='normal')
+        self.output.delete(1.0, tk.END)
+        self.output.insert(tk.END, msg + '\n')
+        self.output.configure(state='disabled')
 
 
 class FileMenu(tk.Menu):
-    def __init__(self, master):
-        tk.Menu.__init__(self, master)
+    def __init__(self, parent, controller):
+        tk.Menu.__init__(self, parent)
+        self.controller = controller
         file_menu = tk.Menu(self, tearoff=False)
         self.add_cascade(label='File', underline=0, menu=file_menu)
         file_menu.add_command(label='Open Json...', underline=1, command=self.open_file)
@@ -68,8 +77,7 @@ class FileMenu(tk.Menu):
         file_menu.add_separator()
         file_menu.add_command(label='Exit', underline=1, command=self.exit)
 
-    @staticmethod
-    def open_file():
+    def open_file(self):
         global cache
         global curr_twt
         global file_path
@@ -77,7 +85,12 @@ class FileMenu(tk.Menu):
 
         file_path = askopenfilename()
         file_details = os.path.splitext(file_path)
+        header_pane = self.controller.get_segment(HeaderPane)
+        
         if file_details[1] == '.json':
+            
+            header_pane.display_file_details('Current file: ' + str(file_path))
+
             with open(file_path, 'rb') as f:
                 cache = json.load(f)
                 curr_twt = 0
@@ -107,6 +120,9 @@ class FileMenu(tk.Menu):
                     stats['remaining'] += 1
             stats['completed'] = len(cache) - stats['remaining']
 
+        else:
+            header_pane.display_file_details('Select a valid .json file')
+
     @staticmethod
     def save():
         global cache
@@ -128,103 +144,86 @@ class FileMenu(tk.Menu):
         self.master.destroy()
 
 
-class MainBar:
+class MainPane(tk.Frame):
 
-    def __init__(self, master):
-        self.master = master
-        self.frame = tk.Frame(self.master)
-        self.frame.grid(row=2, column=0)
-        self.frame1 = tk.Frame(self.master)
-        self.frame1.grid(row=1, column=1, rowspan=2, sticky='N')
-        file_menu = FileMenu(self.master)
-        head = HeaderBar(master)
-        self.master.config(menu=file_menu)
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+        self.controller = controller
+       
+        self.grid(row=2, column=0)
 
-        sns.set_style('darkgrid', {'axes.linewidth': 1, 'axes.edgecolor': 'black'})
-        self.fig = plt.Figure(figsize=(5, 3), dpi=80, facecolor='gainsboro')
-
-        self.ax1 = self.fig.add_subplot(111)
-        # plt.gcf().subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
-        canvas = FigureCanvasTkAgg(self.fig, self.frame1)
-        ani = animation.FuncAnimation(self.fig, self.animate, interval=1000)
-        canvas.draw()
-        canvas.get_tk_widget().grid(row=2, column=0, sticky='w')
+        
 
         #self.w = tk.OptionMenu(self, self.var, 'Open File', 'Recent', 'Save As', 'Save', 'Save & Exit')
         # ---Buttons---
         # Unrelated, undecided, error
-        self.unrl_btn = tk.Button(self.frame, text='Unrelated', width=10, command=self.unrelated)
+        self.unrl_btn = tk.Button(self, text='Unrelated', width=10, command=self.unrelated)
         self.unrl_btn.grid(row=5, column=0, padx=5)
 
-        self.undc_btn = tk.Button(self.frame, text='Undecided', width=10, command=self.undecided)
+        self.undc_btn = tk.Button(self, text='Undecided', width=10, command=self.undecided)
         self.undc_btn.grid(row=4, column=0, padx=5, pady=5)
 
-        self.error_btn = tk.Button(self.frame, text='Error tweet', width=10, command=self.error_twt)
+        self.error_btn = tk.Button(self, text='Error tweet', width=10, command=self.error_twt)
         self.error_btn.grid(row=6, column=0, padx=5, pady=5)
         # Yes, No
-        self.yes_btn = tk.Button(self.frame, text='Yes', width=10, command=self.yes)
+        self.yes_btn = tk.Button(self, text='Yes', width=10, command=self.yes)
         self.yes_btn.grid(row=4, column=1, padx=5)
-        self.no_btn = tk.Button(self.frame, text='No', width=10, command=self.no)
+        self.no_btn = tk.Button(self, text='No', width=10, command=self.no)
         self.no_btn.grid(row=4, column=2, padx=5)
 
         # Start
-        self.start_btn = tk.Button(self.frame, text='Start', width=15, command=self.display_current)
+        self.start_btn = tk.Button(self, text='Start', width=15, command=self.display_current)
         self.start_btn.grid(row=0, column=3)
         # Next, Previous
-        self.prev_btn = tk.Button(self.frame, text='Prev', command=self.prev)
+        self.prev_btn = tk.Button(self, text='Prev', command=self.prev)
         self.prev_btn.grid(row=4, column=3, sticky='E')
-        self.next_btn = tk.Button(self.frame, text='Next', command=self.next)
+        self.next_btn = tk.Button(self, text='Next', command=self.next)
         self.next_btn.grid(row=4, column=4, sticky='W')
         # jump buttons
-        self.jump_btn = tk.Button(self.frame, text='Jump to first unmarked', width=20, command=self.jump_to_unmarked)
+        self.jump_btn = tk.Button(self, text='Jump to first unmarked', width=20, command=self.jump_to_unmarked)
         self.jump_btn.grid(row=4, column=5, padx=5, sticky='W')
 
-        self.jump2_btn = tk.Button(self.frame, text='Jump to first undecided', width=20, command=self.jump_to_undecided)
+        self.jump2_btn = tk.Button(self, text='Jump to first undecided', width=20, command=self.jump_to_undecided)
         self.jump2_btn.grid(row=5, column=5, padx=5, pady=5, sticky='W')
 
-        self.jump3_btn = tk.Button(self.frame, text='Jump to first unrelated', width=20, command=self.jump_to_unrelated)
+        self.jump3_btn = tk.Button(self, text='Jump to first unrelated', width=20, command=self.jump_to_unrelated)
         self.jump3_btn.grid(row=6, column=5, padx=5, pady=5, sticky='W')
 
-        self.jump4_btn = tk.Button(self.frame, text='Jump to first error', width=20, command=self.jump_to_error)
+        self.jump4_btn = tk.Button(self, text='Jump to first error', width=20, command=self.jump_to_error)
         self.jump4_btn.grid(row=7, column=5, padx=5, pady=5, sticky='W')
 
-        self.jump5_btn = tk.Button(self.frame, text='Jump to Tweet no.', width=15, command=self.jump_to_index)
+        self.jump5_btn = tk.Button(self, text='Jump to Tweet no.', width=15, command=self.jump_to_index)
         self.jump5_btn.grid(row=8, column=4, padx=5, sticky='W')
 
-        self.tweet_idx_input = tk.Text(self.frame, width=10, height=1)
+        self.tweet_idx_input = tk.Text(self, width=10, height=1)
         self.tweet_idx_input.configure(font=my_font)
         self.tweet_idx_input.grid(row=8, column=5, padx=5, pady=5, sticky='W')
         # ---Labels---
-        self.main_lbl = tk.Label(self.frame, font=heading, text='Mark Tweet')
+        self.main_lbl = tk.Label(self, font=heading, text='Mark Tweet')
         self.main_lbl.grid(row=0, column=1, columnspan=2, padx=5, pady=(10, 5))
 
-        self.side_lbl = tk.Label(self.frame1, text='Info', font=heading)
-        self.side_lbl.grid(row=0, column=0)
+       
 
-        self.mark_btns_lbl = tk.Label(self.frame, text='Mark Tweet', font=heading)
+        self.mark_btns_lbl = tk.Label(self, text='Mark Tweet', font=heading)
         self.mark_btns_lbl.grid(row=3, column=0, columnspan=3, pady=5)
-        self.navi_btns_lbl = tk.Label(self.frame, text='Navigation', font=heading)
+        self.navi_btns_lbl = tk.Label(self, text='Navigation', font=heading)
         self.navi_btns_lbl.grid(row=3, column=4, pady=5, columnspan=2)
         # tweet number
-        self.no_lbl = tk.Label(self.frame, text='Tweet No.')
+        self.no_lbl = tk.Label(self, text='Tweet No.')
         self.no_lbl.grid(row=1, column=0, padx=5, pady=(20, 5), sticky='E')
         # marked
-        self.marked_lbl = tk.Label(self.frame, text='Yes/No?')
+        self.marked_lbl = tk.Label(self, text='Yes/No?')
         self.marked_lbl.grid(row=1, column=2, padx=5, pady=(20, 5), sticky='E')
         # ---Outputs---
-        # Info field
-        self.stats_display = tk.Text(self.frame1, state='disabled', width=25, height=15, wrap=tk.WORD, bg='gainsboro',
-                                     borderwidth=2, relief='groove')
-        self.stats_display.grid(row=1, column=0, sticky='ns')
-        self.stats_display.configure(font=my_font)
+        
         # tweet number field
-        self.txt_no = tk.Text(self.frame, state='disabled', bg='gainsboro', foreground='blue', font=('Helvetica', 12, 'bold'),  width=6, height=1, borderwidth=2, relief='groove')
+        self.txt_no = tk.Text(self, state='disabled', bg='gainsboro', foreground='blue', font=('Helvetica', 12, 'bold'),  width=6, height=1, borderwidth=2, relief='groove')
         self.txt_no.grid(row=1, column=1, padx=5, pady=(20, 5), sticky='W')
         # marked field
-        self.marked_txt = tk.Text(self.frame, state='disabled', bg='gainsboro', foreground='green', font=('Helvetica', 12, 'bold'), width=15, height=1, borderwidth=2, relief='groove')
+        self.marked_txt = tk.Text(self, state='disabled', bg='gainsboro', foreground='green', font=('Helvetica', 12, 'bold'), width=15, height=1, borderwidth=2, relief='groove')
         self.marked_txt.grid(row=1, column=3, padx=5, pady=(20, 5), sticky='W')
         # main output
-        self.txt_output = tk.Text(self.frame, state='disabled',  width=70, height=7, wrap=tk.WORD, bg='gainsboro', borderwidth=2, relief='groove')
+        self.txt_output = tk.Text(self, state='disabled',  width=70, height=7, wrap=tk.WORD, bg='gainsboro', borderwidth=2, relief='groove')
         self.txt_output.grid(row=2, column=0, columnspan=6, padx=5, pady=5)
         self.txt_output.configure(font=my_font)
 
@@ -240,25 +239,9 @@ class MainBar:
         self.txt_no.insert(tk.END, num, '\n')
         self.txt_no.configure(state='disabled')
 
-    def animate(self, i):
-        xs = []
-        ys = []
-
-        for stat in stats.items():
-            if stat[0] not in {'remaining', 'completed'}:
-                xs.append(stat[0])
-                ys.append(stat[1])
-
-        self.ax1.clear()
-        bar_list = self.ax1.bar(xs, ys)
-        self.ax1.tick_params(labelsize=8)
-        bar_list[0].set_color('red')
-        bar_list[1].set_color('green')
-        bar_list[2].set_color('orange')
-        bar_list[3].set_color('yellow')
-        bar_list[4].set_color('blue')
-
+   
     def display_current(self):
+        stats_pane = self.controller.get_segment(StatsPane)
         global curr_twt
         global cache
 
@@ -289,36 +272,10 @@ class MainBar:
         else:
             self.marked_txt.insert(tk.END, 'NO', '\n')
         self.marked_txt.configure(state='disabled')
-        self.display_stats()
 
-    def display_stats(self):
-        comp = stats['completed']
-        rem = stats['remaining']
-        neg = stats['negative']
-        not_neg = stats['not negative']
-        err = stats['error']
-        und = stats['undecided']
-        unr = stats['unrelated']
-        try:
-            neg_perc = neg/comp*100
-            not_neg_perc = not_neg/comp*100
-            err_perc = err/comp*100
-            und_perc = und/comp*100
-            unr_perc = unr/comp*100
-        except ZeroDivisionError:
-            neg_perc = 0
-            not_neg_perc = 0
-            err_perc = 0
-            und_perc = 0
-            unr_perc = 0
+        stats_pane.display_stats()
 
-        info = f" Completed:     {comp} of {len(cache)}\n Remaining:      {rem}\n----------------------------------\n" \
-            f" Negative:         {neg}  {neg_perc:.1f}%\n Not Negative:  {not_neg}  {not_neg_perc:.1f}%\n----------------------------------\n" \
-            f" Error Tweets:  {err}  {err_perc:.1f}%\n Undecided:     {und}  {und_perc:.1f}%\n Unrelated:       {unr}  {unr_perc:.1f}%"
-        self.stats_display.configure(state='normal')
-        self.stats_display.delete(1.0, tk.END)
-        self.stats_display.insert(tk.END, info)
-        self.stats_display.configure(state='disabled')
+   
 
     def unrelated(self):
         global cache
@@ -530,14 +487,86 @@ class MainBar:
         else:
             return
 
+class StatsPane(tk.Frame):
+    def __init__(self, parent, controller):
+        tk.Frame.__init__(self, parent)
+
+        self.grid(row=1, column=1, rowspan=2, sticky='N')
+
+        self.side_lbl = tk.Label(self, text='Info', font=heading)
+        self.side_lbl.grid(row=0, column=0)
+
+        # Info field
+        self.stats_display = tk.Text(self, state='disabled', width=25, height=15, wrap=tk.WORD, bg='gainsboro',
+                                     borderwidth=2, relief='groove')
+        self.stats_display.grid(row=1, column=0, sticky='ns')
+        self.stats_display.configure(font=my_font)
+
+        sns.set_style('darkgrid', {'axes.linewidth': 1, 'axes.edgecolor': 'black'})
+        self.fig = plt.Figure(figsize=(5, 3), dpi=80, facecolor='gainsboro')
+
+        self.ax1 = self.fig.add_subplot(111)
+        # plt.gcf().subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
+        canvas = FigureCanvasTkAgg(self.fig, self)
+        ani = animation.FuncAnimation(self.fig, self.animate, interval=1000)
+        canvas.draw()
+        canvas.get_tk_widget().grid(row=2, column=0, sticky='w')
+
+    def animate(self, i):
+            xs = []
+            ys = []
+
+            for stat in stats.items():
+                if stat[0] not in {'remaining', 'completed'}:
+                    xs.append(stat[0])
+                    ys.append(stat[1])
+
+            self.ax1.clear()
+            bar_list = self.ax1.bar(xs, ys)
+            self.ax1.tick_params(labelsize=8)
+            bar_list[0].set_color('red')
+            bar_list[1].set_color('green')
+            bar_list[2].set_color('orange')
+            bar_list[3].set_color('yellow')
+            bar_list[4].set_color('blue')
+
+
+    def display_stats(self):
+        comp = stats['completed']
+        rem = stats['remaining']
+        neg = stats['negative']
+        not_neg = stats['not negative']
+        err = stats['error']
+        und = stats['undecided']
+        unr = stats['unrelated']
+        try:
+            neg_perc = neg/comp*100
+            not_neg_perc = not_neg/comp*100
+            err_perc = err/comp*100
+            und_perc = und/comp*100
+            unr_perc = unr/comp*100
+        except ZeroDivisionError:
+            neg_perc = 0
+            not_neg_perc = 0
+            err_perc = 0
+            und_perc = 0
+            unr_perc = 0
+
+        info = f" Completed:     {comp} of {len(cache)}\n Remaining:      {rem}\n----------------------------------\n" \
+            f" Negative:         {neg}  {neg_perc:.1f}%\n Not Negative:  {not_neg}  {not_neg_perc:.1f}%\n----------------------------------\n" \
+            f" Error Tweets:  {err}  {err_perc:.1f}%\n Undecided:     {und}  {und_perc:.1f}%\n Unrelated:       {unr}  {unr_perc:.1f}%"
+        self.stats_display.configure(state='normal')
+        self.stats_display.delete(1.0, tk.END)
+        self.stats_display.insert(tk.END, info)
+        self.stats_display.configure(state='disabled')
 
 def main():
-    master = tk.Tk()
-    master.geometry('1125x620')
-    master.title('Data Annotator')
+    app = AnnotatorApp()
+    #master.geometry('1125x620')
+    #master.title('Data Annotator')
 
-    main_bar = MainBar(master)
-    master.mainloop()
+    #main_bar = MainBar(master)
+    app.mainloop()
 
 
 if __name__ == '__main__':
