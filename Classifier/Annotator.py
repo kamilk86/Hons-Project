@@ -26,7 +26,8 @@ stats = {
 class AnnotatorApp(tk.Tk):
     def __init__(self, *args, **kwargs):
         tk.Tk.__init__(self, *args, **kwargs)
-        self.geometry('1125x620')
+        
+        self.geometry('1020x600')
         self.title('Data Annotator')
         container = tk.Frame(self)
         container.pack(side="top", fill="both", expand=True)
@@ -46,7 +47,7 @@ class AnnotatorApp(tk.Tk):
 class HeaderPane(tk.Frame):
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
-        
+
         self.grid(row=1, column=0)
        
          # file path info output
@@ -141,15 +142,15 @@ class FileMenu(tk.Menu):
             return
 
     def exit(self):
-        self.master.destroy()
+        self.controller.destroy()
 
 
 class MainPane(tk.Frame):
 
     def __init__(self, parent, controller):
         tk.Frame.__init__(self, parent)
+
         self.controller = controller
-       
         self.grid(row=2, column=0)
 
         # ---Buttons---
@@ -166,48 +167,49 @@ class MainPane(tk.Frame):
 
         # Yes, No
         self.yes_btn = tk.Button(self, text='Yes', width=10, command=self.yes)
-        self.yes_btn.grid(row=4, column=1, padx=5)
+        self.yes_btn.grid(row=4, column=1, padx=5, sticky="W")
         self.no_btn = tk.Button(self, text='No', width=10, command=self.no)
-        self.no_btn.grid(row=4, column=2, padx=5)
+        self.no_btn.grid(row=4, column=2, padx=5, sticky='W')
 
         # Start
         self.start_btn = tk.Button(self, text='Start', width=15, command=self.display_current)
-        self.start_btn.grid(row=0, column=3)
+        self.start_btn.grid(row=0, column=2)
 
         # Next, Previous
         self.prev_btn = tk.Button(self, text='Prev', command=self.prev)
-        self.prev_btn.grid(row=4, column=3, sticky='E')
+        self.prev_btn.grid(row=4, column=4, sticky='E', padx=5)
         self.next_btn = tk.Button(self, text='Next', command=self.next)
-        self.next_btn.grid(row=4, column=4, sticky='W')
+        self.next_btn.grid(row=4, column=5, sticky='W')
 
         # jump buttons
         self.jump_btn = tk.Button(self, text='Jump to first unmarked', width=20, command=self.jump_to_unmarked)
-        self.jump_btn.grid(row=4, column=5, padx=5, sticky='W')
+        self.jump_btn.grid(row=4, column=3, padx=5, sticky='E')
 
         self.jump2_btn = tk.Button(self, text='Jump to first undecided', width=20, command=self.jump_to_undecided)
-        self.jump2_btn.grid(row=5, column=5, padx=5, pady=5, sticky='W')
+        self.jump2_btn.grid(row=5, column=3, padx=5, pady=5, sticky='E')
 
         self.jump3_btn = tk.Button(self, text='Jump to first unrelated', width=20, command=self.jump_to_unrelated)
-        self.jump3_btn.grid(row=6, column=5, padx=5, pady=5, sticky='W')
+        self.jump3_btn.grid(row=6, column=3, padx=5, pady=5, sticky='E')
 
         self.jump4_btn = tk.Button(self, text='Jump to first error', width=20, command=self.jump_to_error)
-        self.jump4_btn.grid(row=7, column=5, padx=5, pady=5, sticky='W')
+        self.jump4_btn.grid(row=7, column=3, padx=5, pady=5, sticky='E')
 
-        self.jump5_btn = tk.Button(self, text='Jump to Tweet no.', width=15, command=self.jump_to_index)
-        self.jump5_btn.grid(row=8, column=4, padx=5, sticky='W')
+        self.jump5_btn = tk.Button(self, text='Jump to Tweet no.', width=20, command=self.jump_to_index)
+        self.jump5_btn.grid(row=8, column=3, padx=5, sticky='E')
 
         self.tweet_idx_input = tk.Text(self, width=10, height=1)
         self.tweet_idx_input.configure(font=my_font)
-        self.tweet_idx_input.grid(row=8, column=5, padx=5, pady=5, sticky='W')
+        self.tweet_idx_input.grid(row=8, column=4, columnspan=2, padx=5, pady=5, sticky='W')
+        
         # ---Labels---
-        self.main_lbl = tk.Label(self, font=heading, text='Mark Tweet')
-        self.main_lbl.grid(row=0, column=1, columnspan=2, padx=5, pady=(10, 5))
+        #self.main_lbl = tk.Label(self, font=heading, text='Mark Tweet')
+        #self.main_lbl.grid(row=0, column=1, columnspan=2, padx=5, pady=(10, 5))
 
        
         self.mark_btns_lbl = tk.Label(self, text='Mark Tweet', font=heading)
         self.mark_btns_lbl.grid(row=3, column=0, columnspan=3, pady=5)
         self.navi_btns_lbl = tk.Label(self, text='Navigation', font=heading)
-        self.navi_btns_lbl.grid(row=3, column=4, pady=5, columnspan=2)
+        self.navi_btns_lbl.grid(row=3, column=3, pady=5, columnspan=2)
 
         # tweet number
         self.no_lbl = tk.Label(self, text='Tweet No.')
@@ -502,13 +504,13 @@ class StatsPane(tk.Frame):
         self.side_lbl.grid(row=0, column=0)
 
         # Info field
-        self.stats_display = tk.Text(self, state='disabled', width=25, height=15, wrap=tk.WORD, bg='gainsboro',
+        self.stats_display = tk.Text(self, state='disabled', width=39, height=10, wrap=tk.WORD, bg='gainsboro',
                                      borderwidth=2, relief='groove')
         self.stats_display.grid(row=1, column=0, sticky='ns')
         self.stats_display.configure(font=my_font)
 
         sns.set_style('darkgrid', {'axes.linewidth': 1, 'axes.edgecolor': 'black'})
-        self.fig = plt.Figure(figsize=(5, 3), dpi=80, facecolor='gainsboro')
+        self.fig = plt.Figure(figsize=(4.5, 4), dpi=80, facecolor='gainsboro')
 
         self.ax1 = self.fig.add_subplot(111)
         # plt.gcf().subplots_adjust(left=0, bottom=0, right=1, top=1, wspace=0, hspace=0)
@@ -560,9 +562,10 @@ class StatsPane(tk.Frame):
             und_perc = 0
             unr_perc = 0
 
-        info = f" Completed:     {comp} of {len(cache)}\n Remaining:      {rem}\n----------------------------------\n" \
-            f" Negative:         {neg}  {neg_perc:.1f}%\n Not Negative:  {not_neg}  {not_neg_perc:.1f}%\n----------------------------------\n" \
-            f" Error Tweets:  {err}  {err_perc:.1f}%\n Undecided:     {und}  {und_perc:.1f}%\n Unrelated:       {unr}  {unr_perc:.1f}%"
+        info = f"\tCompleted:     {comp} of {len(cache)}\n\tRemaining:      {rem}\n --------------------------------------------------------\n" \
+            f"\tNegative:         {neg}  {neg_perc:.1f}%\n\tNot Negative:  {not_neg}  {not_neg_perc:.1f}%\n --------------------------------------------------------\n" \
+            f"\tError Tweets:  {err}  {err_perc:.1f}%\n\tUndecided:     {und}  {und_perc:.1f}%\n\tUnrelated:       {unr}  {unr_perc:.1f}%"
+
         self.stats_display.configure(state='normal')
         self.stats_display.delete(1.0, tk.END)
         self.stats_display.insert(tk.END, info)
